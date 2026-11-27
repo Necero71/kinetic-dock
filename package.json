@@ -1,0 +1,26 @@
+{
+  "name": "kinetic-dock",
+  "productName": "Kinetic Dock",
+  "version": "0.1.0",
+  "description": "A tactical widget dock for Linux and Windows: apps, system stats, homelab status, weather, media and more.",
+  "main": "src/main/main.js",
+  "author": "Mavro Kinetic",
+  "private": true,
+  "scripts": {
+    "start": "electron . --ozone-platform=x11",
+    "test": "node --test",
+    "dist:linux": "electron-builder --linux --publish never",
+    "dist:win": "electron-builder --win --publish never"
+  },
+  "devDependencies": {
+    "electron": "^45.5.0",
+    "electron-builder": "^26.18.0"
+  },
+  "build": {
+    "appId": "com.mavrokinetic.dock",
+    "publish": null,
+    "files": ["src/**/*", "assets/**/*"],
+    "linux": { "target": ["AppImage"], "category": "Utility", "icon": "assets/icon.png", "executableArgs": ["--ozone-platform=x11"] },
+    "win": { "target": ["nsis"], "icon": "assets/icon.png" }
+  }
+}
