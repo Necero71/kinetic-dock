@@ -3,7 +3,10 @@ const path = require('node:path');
 const { BrowserWindow, screen } = require('electron');
 const { run } = require('./exec');
 
-const HEIGHT = 64;
+const HEIGHT = 64; // thickness along the top or bottom
+const WIDTH = 108; // thickness along the left or right
+const isVertical = (edge) => edge === 'left' || edge === 'right';
+const clamp = (v, min, max) => Math.round(Math.min(Math.max(v, min), max));
 const POPOVER = { width: 360, height: 440 };
 
 function makeWindow(options, query) {
@@ -20,27 +23,39 @@ function makeWindow(options, query) {
   return win;
 }
 
-function dockBounds(edge, display) {
+function dockBounds(edge, display, platform = process.platform) {
   // Windows keeps its taskbar in place, so sit inside the work area there. On Linux use the screen edge.
-  const a = process.platform === 'win32' ? display.workArea : display.bounds;
+  const a = platform === 'win32' ? display.workArea : display.bounds;
+  if (isVertical(edge)) {
+    // Stop short of any top or bottom system panel so it stays clickable.
+    const { y, height } = display.workArea;
+    return { x: edge === 'left' ? a.x : a.x + a.width - WIDTH, y, width: WIDTH, height };
+  }
   return { x: a.x, y: edge === 'top' ? a.y : a.y + a.height - HEIGHT, width: a.width, height: HEIGHT };
 }
 
-/** _NET_WM_STRUT_PARTIAL values that reserve the dock's strip on X11. */
-function strutValues(edge, bounds, scale, screenHeight) {
+/**
+ * _NET_WM_STRUT_PARTIAL values that reserve the dock's strip on X11:
+ * left, right, top, bottom, then a start and end coordinate for each.
+ */
+function strutValues(edge, bounds, scale, screenSize) {
   const px = (v) => Math.round(v * scale);
+  const [x1, x2] = [px(bounds.x), px(bounds.x + bounds.width) - 1];
+  const [y1, y2] = [px(bounds.y), px(bounds.y + bounds.height) - 1];
   const v = new Array(12).fill(0);
-  const x1 = px(bounds.x);
-  const x2 = px(bounds.x + bounds.width) - 1;
-  if (edge === 'top') { v[2] = px(bounds.y + bounds.height); v[8] = x1; v[9] = x2; } else { v[3] = px(screenHeight - bounds.y); v[10] = x1; v[11] = x2; }
+  if (edge === 'left') [v[0], v[4], v[5]] = [px(bounds.x + bounds.width), y1, y2];
+  else if (edge === 'right') [v[1], v[6], v[7]] = [px(screenSize.width - bounds.x), y1, y2];
+  else if (edge === 'top') [v[2], v[8], v[9]] = [px(bounds.y + bounds.height), x1, x2];
+  else [v[3], v[10], v[11]] = [px(screenSize.height - bounds.y), x1, x2];
   return v;
 }
 
 async function reserveSpace(win, edge, bounds) {
   if (process.platform !== 'linux') return;
   const id = String(win.getNativeWindowHandle().readUInt32LE(0));
-  const screenHeight = Math.max(...screen.getAllDisplays().map((d) => d.bounds.y + d.bounds.height));
-  const value = strutValues(edge, bounds, screen.getPrimaryDisplay().scaleFactor, screenHeight).join(',');
+  const all = screen.getAllDisplays().map((d) => d.bounds);
+  const screenSize = { width: Math.max(...all.map((b) => b.x + b.width)), height: Math.max(...all.map((b) => b.y + b.height)) };
+  const value = strutValues(edge, bounds, screen.getPrimaryDisplay().scaleFactor, screenSize).join(',');
   try {
     await run('xprop', ['-id', id, '-f', '_NET_WM_STRUT_PARTIAL', '32c', '-set', '_NET_WM_STRUT_PARTIAL', value]);
   } catch {
@@ -60,16 +75,25 @@ function createDock(edge) {
   return win;
 }
 
-function createPopover(id, anchorX, dock, edge) {
-  const d = dock.getBounds();
-  const area = screen.getDisplayMatching(d).workArea;
+/** Open the popover beside the dock, centred on the clicked widget. `anchor` is its offset along the dock. */
+function popoverBounds(edge, anchor, d, area) {
+  const { width } = POPOVER;
+  if (isVertical(edge)) {
+    const height = Math.min(POPOVER.height, d.height - 16);
+    const x = edge === 'left' ? d.x + d.width + 6 : d.x - width - 6;
+    return { x, y: clamp(d.y + anchor - height / 2, d.y + 8, d.y + d.height - height - 8), width, height };
+  }
   const height = Math.min(POPOVER.height, area.height - HEIGHT);
-  const x = Math.round(Math.min(Math.max(d.x + anchorX - POPOVER.width / 2, d.x + 8), d.x + d.width - POPOVER.width - 8));
-  const y = edge === 'top' ? d.y + d.height + 6 : d.y - height - 6;
-  const win = makeWindow({ x, y, width: POPOVER.width, height }, { popover: id });
+  const x = clamp(d.x + anchor - width / 2, d.x + 8, d.x + d.width - width - 8);
+  return { x, y: edge === 'top' ? d.y + d.height + 6 : d.y - height - 6, width, height };
+}
+
+function createPopover(id, anchor, dock, edge) {
+  const d = dock.getBounds();
+  const win = makeWindow(popoverBounds(edge, anchor, d, screen.getDisplayMatching(d).workArea), { popover: id });
   win.once('ready-to-show', () => { win.show(); win.focus(); });
   win.on('blur', () => { if (!win.isDestroyed()) win.close(); });
   return win;
 }
 
-module.exports = { createDock, createPopover, dockBounds, strutValues, HEIGHT };
+module.exports = { createDock, createPopover, dockBounds, popoverBounds, strutValues, isVertical };

@@ -2,6 +2,7 @@
 const fs = require('node:fs');
 const path = require('node:path');
 
+const EDGES = ['bottom', 'top', 'left', 'right'];
 const WIDGETS = ['clock', 'cpu', 'memory', 'disk', 'network', 'docker', 'tailscale', 'servers', 'weather', 'calendar', 'timer', 'notes', 'media', 'volume'];
 
 function defaults(platform = process.platform) {
@@ -33,7 +34,7 @@ function sanitize(input, platform) {
   const d = defaults(platform);
   const c = input && typeof input === 'object' ? input : {};
   return {
-    edge: c.edge === 'top' ? 'top' : 'bottom',
+    edge: EDGES.includes(c.edge) ? c.edge : 'bottom',
     widgets: Array.isArray(c.widgets) ? [...new Set(c.widgets.filter((w) => WIDGETS.includes(w)))] : d.widgets,
     city: typeof c.city === 'string' ? text(c.city, 80).trim() : d.city,
     apps: list(c.apps, 'command', d.apps),
@@ -65,4 +66,4 @@ function save(file, config) {
   fs.renameSync(`${file}.tmp`, file);
 }
 
-module.exports = { WIDGETS, defaults, sanitize, load, save };
+module.exports = { EDGES, WIDGETS, defaults, sanitize, load, save };

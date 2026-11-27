@@ -8,7 +8,7 @@ const homelab = require('./providers/homelab');
 const { weather } = require('./providers/weather');
 const media = require('./providers/media');
 const { createTimer } = require('./timer');
-const { createDock, createPopover } = require('./dock-window');
+const { createDock, createPopover, isVertical } = require('./dock-window');
 const { setAutostart } = require('./autostart');
 
 if (!app.requestSingleInstanceLock()) app.exit(0);
@@ -52,13 +52,13 @@ function closePopover() {
   if (popover && !popover.isDestroyed()) popover.close();
 }
 
-function openPopover(id, x) {
+function openPopover(id, anchor) {
   // Clicking the open widget again closes it (the blur handler may have closed it already).
   const wasOpen = (popover && popover.kdId === id) || (lastClosed.id === id && Date.now() - lastClosed.at < 300);
   closePopover();
   popover = null;
   if (wasOpen || !dock) return;
-  const win = createPopover(id, Number(x) || 0, dock, settings.edge);
+  const win = createPopover(id, Number(anchor) || 0, dock, settings.edge);
   win.kdId = id;
   win.on('close', () => { lastClosed = { id, at: Date.now() }; if (popover === win) popover = null; });
   popover = win;
@@ -72,6 +72,7 @@ function layoutKey() {
 
 let layout = '';
 let layoutTimer = null;
+let createTimeout = null;
 function onDisplaysChanged() {
   clearTimeout(layoutTimer);
   layoutTimer = setTimeout(() => { if (layoutKey() !== layout) rebuildDock(); }, 500);
@@ -81,8 +82,11 @@ function rebuildDock() {
   layout = layoutKey();
   closePopover();
   const old = dock;
-  dock = createDock(settings.edge);
+  dock = null;
   old?.destroy();
+  clearTimeout(createTimeout);
+  // Give the desktop a moment to release the old dock's reserved space before measuring again.
+  createTimeout = setTimeout(() => { layout = layoutKey(); dock = createDock(settings.edge); }, old ? 400 : 0);
 }
 
 function persist(next) {
@@ -136,7 +140,7 @@ function registerIpc() {
 
 const menuItems = () => [
   { label: 'Show / hide dock', click: toggleDock },
-  { label: 'Settings', click: () => openPopover('settings', dock.getBounds().width) },
+  { label: 'Settings', click: () => dock && openPopover('settings', dock.getBounds()[isVertical(settings.edge) ? 'height' : 'width']) },
   { type: 'separator' },
   { label: 'Quit Kinetic Dock', click: () => app.quit() }
 ];

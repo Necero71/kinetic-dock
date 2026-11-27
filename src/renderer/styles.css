@@ -33,6 +33,16 @@ progress::-webkit-progress-bar { background: #3a3f2c; }
 progress::-webkit-progress-value { background: var(--tan); }
 .gear { width: 40px; height: 40px; padding: 0; font-size: 18px; }
 
+/* Left and right edges: stack everything in a single column. */
+.dock.vertical { flex-direction: column; padding: 8px 6px; border-block: 0; }
+.dock.left { border-right: 2px solid var(--olive); }
+.dock.right { border-left: 2px solid var(--olive); }
+.vertical .brand, .vertical .gear { flex-shrink: 0; }
+.vertical .apps { flex-shrink: 0; flex-wrap: wrap; justify-content: center; max-height: 132px; overflow-y: auto; padding: 0 0 8px; border-right: 0; border-bottom: 2px solid var(--coyote); }
+.vertical .strip { flex-direction: column; align-self: stretch; min-height: 0; overflow-y: auto; scrollbar-width: none; }
+.vertical .tile { flex: 0 0 48px; height: 48px; max-width: none; width: 100%; }
+.vertical .gear { width: 100%; height: 34px; }
+
 .popover { display: flex; flex-direction: column; border: 2px solid var(--olive); }
 header { display: flex; align-items: center; justify-content: space-between; padding: 8px 12px; background: var(--olive); }
 h1 { font-size: 13px; letter-spacing: .15em; text-transform: uppercase; }

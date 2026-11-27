@@ -19,6 +19,12 @@ const fetchFor = (id) => (WIDGETS[id].local ? Promise.resolve({ ok: true, data: 
 let stops = [];
 
 function renderDock(config) {
+  const vertical = config.edge === 'left' || config.edge === 'right';
+  // Where a widget sits along the dock, so its popover can open next to it.
+  const anchor = (node) => {
+    const r = node.getBoundingClientRect();
+    return vertical ? r.top + r.height / 2 : r.left + r.width / 2;
+  };
   stops.forEach((stop) => stop());
   stops = [];
   const apps = el('nav', { className: 'apps' }, config.apps.map((a, i) =>
@@ -29,7 +35,7 @@ function renderDock(config) {
     const value = el('b', { textContent: '…' });
     const sub = el('small');
     const bar = el('progress', { max: 100, value: 0, hidden: true });
-    const tile = button('', (e) => window.dock.open(id, e.currentTarget.getBoundingClientRect().left + e.currentTarget.offsetWidth / 2), { className: 'tile' });
+    const tile = button('', (e) => window.dock.open(id, anchor(e.currentTarget)), { className: 'tile' });
     tile.append(el('span', { textContent: widget.title }), value, bar, sub);
     let latest = config;
     stops.push(poll(async () => {
@@ -49,11 +55,11 @@ function renderDock(config) {
   });
 
   const strip = el('div', { className: 'strip' }, tiles);
-  // A normal mouse wheel scrolls the widget strip sideways on narrow screens.
-  strip.addEventListener('wheel', (e) => { strip.scrollLeft += e.deltaY + e.deltaX; }, { passive: true });
-  root.className = 'dock';
+  // A normal mouse wheel scrolls the widget strip sideways on narrow screens. Vertical docks scroll natively.
+  if (!vertical) strip.addEventListener('wheel', (e) => { strip.scrollLeft += e.deltaY + e.deltaX; }, { passive: true });
+  root.className = vertical ? `dock vertical ${config.edge}` : 'dock';
   root.replaceChildren(el('div', { className: 'brand', title: 'Kinetic Dock' }, 'K', el('em', { textContent: 'D' })), apps, strip,
-    button('⚙', (e) => window.dock.open('settings', e.currentTarget.getBoundingClientRect().left), { className: 'gear', title: 'Settings' }));
+    button('⚙', (e) => window.dock.open('settings', anchor(e.currentTarget)), { className: 'gear', title: 'Settings' }));
 }
 
 function renderPopover(id, config) {

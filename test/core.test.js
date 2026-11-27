@@ -12,7 +12,7 @@ const media = require('../src/main/providers/media');
 const { createTimer } = require('../src/main/timer');
 
 test('sanitize drops bad values', () => {
-  const c = config.sanitize({ edge: 'left', widgets: ['cpu', 'cpu', 'nope'], apps: [{ name: 'A', command: 'a' }, { name: '' }, null] });
+  const c = config.sanitize({ edge: 'diagonal', widgets: ['cpu', 'cpu', 'nope'], apps: [{ name: 'A', command: 'a' }, { name: '' }, null] });
   assert.strictEqual(c.edge, 'bottom');
   assert.deepStrictEqual(c.widgets, ['cpu']);
   assert.deepStrictEqual(c.apps, [{ name: 'A', command: 'a' }]);
@@ -72,4 +72,8 @@ test('timer pauses and resumes', (t) => {
   timer.toggle();
   t.mock.timers.tick(40000);
   assert.strictEqual(done, 1);
+});
+
+test('every edge is accepted', () => {
+  for (const edge of config.EDGES) assert.strictEqual(config.sanitize({ edge }).edge, edge);
 });

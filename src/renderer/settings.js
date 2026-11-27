@@ -6,7 +6,7 @@ const fromLines = (value, key) => value.split('\n').map((line) => {
 }).filter((x) => x.ok);
 
 function settingsPanel(config) {
-  const edge = el('select', {}, ['bottom', 'top'].map((v) => el('option', { value: v, textContent: v })));
+  const edge = el('select', {}, ['bottom', 'top', 'left', 'right'].map((v) => el('option', { value: v, textContent: v })));
   edge.value = config.edge;
   const city = el('input', { value: config.city });
   const apps = el('textarea', { value: toLines(config.apps, 'command'), rows: 4 });

@@ -1,10 +1,14 @@
 # Kinetic Dock
 
-A tactical widget dock for **Linux and Windows**. Pinned apps, system stats, homelab status and daily tools on one bar at the top or bottom of your screen.
+A tactical widget dock for **Linux and Windows**. Pinned apps, system stats, homelab status and daily tools on one bar along any edge of your screen.
 
 No account, no telemetry, no runtime dependencies beyond Electron.
 
 ![Kinetic Dock](docs/dock.png)
+
+On the left or right edge the dock turns vertical:
+
+![Vertical Kinetic Dock](docs/dock-vertical.png)
 
 ## Widgets
 
@@ -54,7 +58,7 @@ On Bazzite, `xprop` and `playerctl` may already be present; check with `command 
 ## Controls
 
 - **Click a widget** to open its panel. `Esc` closes it.
-- **⚙** edits the screen edge, city, pinned apps, servers and widget order.
+- **⚙** edits the screen edge (bottom, top, left or right), city, pinned apps, servers and widget order.
 - **Ctrl+Alt+K** shows or hides the dock.
 - **Right-click** the dock, or use the tray icon, to quit.
 
